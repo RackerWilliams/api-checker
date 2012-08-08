@@ -2,12 +2,16 @@
 <xsl:stylesheet 
     xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
     xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
     xmlns:wadl="http://wadl.dev.java.net/2009/02"
     xmlns:check="http://www.rackspace.com/repose/wadl/checker"
     xmlns:rax="http://docs.rackspace.com/api"
     xmlns="http://www.rackspace.com/repose/wadl/checker"
+    xmlns:xslout="http://www.rackspace.com/repose/wadl/checker/Transform"
     exclude-result-prefixes="xsd wadl rax check"
     version="2.0">
+
+    <xsl:namespace-alias stylesheet-prefix="xslout" result-prefix="xsl"/>
 
     <xsl:output indent="yes" method="xml"/>
 
@@ -611,6 +615,13 @@
         <xsl:value-of select="concat(generate-id($context),$number,'XPTH')"/>
     </xsl:function>
 
+    <xsl:function name="check:XPathTypeID" as="xsd:string">
+        <xsl:param name="context" as="node()"/>
+        <xsl:param name="number" as="xsd:integer"/>
+        <xsl:value-of select="concat(generate-id($context),$number,'XPTHT')"/>
+    </xsl:function>
+
+
     <xsl:function name="check:PreProcID" as="xsd:string">
         <xsl:param name="context" as="node()"/>
         <xsl:param name="number" as="xsd:integer"/>
@@ -697,8 +708,15 @@
         </xsl:if>
         <xsl:if test="$doReqPlainParam">
             <xsl:for-each select="$defaultPlainParams">
+                <!-- Total Hack, proceed -->
+                <xsl:variable name="hasType" select="@type != 'xs:string'"
+                              as="xsd:boolean"/>
                 <step type="XPATH" id="{check:XPathID($this,position())}" match="{@path}">
                     <xsl:choose>
+                        <xsl:when test="$hasType">
+                            <xsl:attribute name="next"
+                                           select="(check:XPathTypeID($this,position()), $FAILID)"/>
+                        </xsl:when>
                         <xsl:when test="position() = last()">
                             <xsl:choose>
                                 <xsl:when test="$doPreProcess">
@@ -722,6 +740,71 @@
                         </xsl:otherwise>
                     </xsl:choose>
                 </step>
+                <xsl:if test="$hasType">
+                    <xsl:variable name="qname" as="xsd:QName" select="resolve-QName(@type,.)"/>
+                    <step type="XSL" id="{check:XPathTypeID($this, position())}" version="2">
+                        <xsl:choose>
+                            <xsl:when test="position() = last()">
+                                <xsl:choose>
+                                    <xsl:when test="$doPreProcess">
+                                        <xsl:attribute name="next"
+                                                       select="check:PreProcID($this, 1)"/>
+                                    </xsl:when>
+                                    <xsl:when test="$doXSD">
+                                        <xsl:attribute name="next"
+                                                       select="($XSDID, $FAILID)"
+                                                       separator=" "/>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <xsl:attribute name="next" select="$ACCEPT"/>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:attribute name="next"
+                                               select="(check:XPathID($this,position()+1), $FAILID)"
+                                               separator=" "/>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <xslout:transform version="2.0">
+                            <xslout:template match="{@path}">
+                                <xslout:choose>
+                                    <xslout:when test=". instance of element()">
+                                        <xslout:copy>
+                                            <xslout:attribute name="xsi:type">
+                                                <xsl:value-of select="@type"/>
+                                            </xslout:attribute>
+                                            <xslout:namespace name="xsi">
+                                                <xslout:text>http://www.w3.org/2001/XMLSchema-instance</xslout:text>
+                                            </xslout:namespace>
+                                            <xslout:namespace name="{prefix-from-QName($qname)}">
+                                                <xslout:text><xsl:value-of select="namespace-uri-from-QName($qname)"/></xslout:text>
+                                            </xslout:namespace>
+                                            <xslout:apply-templates select="@* | node()"/>
+                                        </xslout:copy>
+                                    </xslout:when>
+                                    <xslout:otherwise>
+                                        <xslout:message>
+                                            Warning: Can't check type
+                                            on <xsl:value-of
+                                            select="@path"/> because
+                                            it does not point to an
+                                            element
+                                        </xslout:message>
+                                        <xslout:copy>
+                                            <xslout:apply-templates select="node()"/>
+                                        </xslout:copy>
+                                    </xslout:otherwise>
+                                </xslout:choose>
+                            </xslout:template>
+                            <xslout:template match="node() | @*">
+                                <xslout:copy>
+                                    <xslout:apply-templates select="@* | node()"/>
+                                </xslout:copy>
+                            </xslout:template>
+                        </xslout:transform>
+                    </step>
+                </xsl:if>
             </xsl:for-each>
         </xsl:if>
         <xsl:if test="$doPreProcess">
