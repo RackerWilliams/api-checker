@@ -313,6 +313,9 @@
       1. [X] Enable Optimization in multi-xpath checker tests
       2. [X] Checker tests with xpath 2
       3. [X] Ensure that validaTor Xpath tests work with validator
+** TODO Checke required type, plain params [0/2]
+   1. [ ] Do it with plain params, if they have type
+   2. [ ] Issue waning if the type is not element()
 ** TODO Check Headers [8/9]
    1. [X] Added option to config
    2. [X] Extends XSD
