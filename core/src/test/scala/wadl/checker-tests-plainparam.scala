@@ -290,6 +290,93 @@ class WADLCheckerPlainParamSpec extends BaseCheckerSpec {
               XPath("/tst:a/@id"), XPath("/tst:a/@stepType"), ContentFail)
     }
 
+    scenario("The WADL contains a POST  operation accepting xml which must validate against an XSD with elements specified and multiple required plain params (namespaces in representation)") {
+      Given ("a WADL that contains a POST operation with XML that must validate against an XSD with elemenst specified and multiple plain params")
+      val inWADL =
+      <wadl:application xmlns:wadl="http://wadl.dev.java.net/2009/02">
+        <wadl:grammars>
+            <wadl:include href="src/test/resources/xsd/test-urlxsd.xsd"/>
+        </wadl:grammars>
+        <wadl:resources base="https://test.api.openstack.com">
+           <wadl:resource path="/a/b">
+               <wadl:method name="POST">
+                  <wadl:request>
+                      <wadl:representation mediaType="application/xml" element="tst:a" xmlns:tst="http://www.rackspace.com/repose/wadl/checker/step/test">
+                         <wadl:param name="id" style="plain" path="/tst:a/@id" required="true"/>
+                         <wadl:param name="stepType" style="plain" path="/tst:a/@stepType" required="true"/>
+                      </wadl:representation>
+                  </wadl:request>
+               </wadl:method>
+           </wadl:resource>
+        </wadl:resources>
+    </wadl:application>
+      register("test://app/src/test/resources/xsd/test-urlxsd.xsd",
+               XML.loadFile("src/test/resources/xsd/test-urlxsd.xsd"))
+      val checker = builder.build (inWADL, TestConfig(false, false, true, true, true, 1, true))
+      assert(checker, "in-scope-prefixes(/chk:checker/chk:step[@type='XPATH' and @match='/tst:a']) = 'tst'")
+      assert(checker, "namespace-uri-for-prefix('tst', /chk:checker/chk:step[@type='XPATH' and @match='/tst:a']) = 'http://www.rackspace.com/repose/wadl/checker/step/test'")
+      assert(checker, "in-scope-prefixes(/chk:checker/chk:step[@type='XPATH' and @match='/tst:a/@id']) = 'tst'")
+      assert(checker, "namespace-uri-for-prefix('tst', /chk:checker/chk:step[@type='XPATH' and @match='/tst:a/@id']) = 'http://www.rackspace.com/repose/wadl/checker/step/test'")
+      assert(checker, "in-scope-prefixes(/chk:checker/chk:step[@type='XPATH' and @match='/tst:a/@stepType']) = 'tst'")
+      assert(checker, "namespace-uri-for-prefix('tst', /chk:checker/chk:step[@type='XPATH' and @match='/tst:a/@stepType']) = 'http://www.rackspace.com/repose/wadl/checker/step/test'")
+      assert(checker, "count(/chk:checker/chk:step[@type='XPATH']) = 3")
+      assert(checker, "count(/chk:checker/chk:step[@type='XPATH' and @match='/tst:a']) = 1")
+      assert(checker, "count(/chk:checker/chk:step[@type='XPATH' and @match='/tst:a/@id']) = 1")
+      assert(checker, "count(/chk:checker/chk:step[@type='XPATH' and @match='/tst:a/@stepType']) = 1")
+      assert (checker, Start, URL("a"), URL("b"), Method("POST"), ReqType("(application/xml)(;.*)?"), WellXML, XPath("/tst:a","Expecting the root element to be: tst:a"),
+              XPath("/tst:a/@id"), XPath("/tst:a/@stepType"), XSD, Accept)
+      assert (checker, Start, URL("a"), URL("b"), Method("POST"), ReqType("(application/xml)(;.*)?"), ContentFail)
+      assert (checker, Start, URL("a"), URL("b"), Method("POST"), ReqType("(application/xml)(;.*)?"), WellXML, ContentFail)
+      assert (checker, Start, URL("a"), URL("b"), Method("POST"), ReqType("(application/xml)(;.*)?"), WellXML, XPath("/tst:a","Expecting the root element to be: tst:a"), ContentFail)
+      assert (checker, Start, URL("a"), URL("b"), Method("POST"), ReqType("(application/xml)(;.*)?"), WellXML, XPath("/tst:a","Expecting the root element to be: tst:a"),
+              XPath("/tst:a/@id"), ContentFail)
+      assert (checker, Start, URL("a"), URL("b"), Method("POST"), ReqType("(application/xml)(;.*)?"), WellXML, XPath("/tst:a","Expecting the root element to be: tst:a"),
+              XPath("/tst:a/@id"), XPath("/tst:a/@stepType"), ContentFail)
+    }
+
+    scenario("The WADL contains a POST  operation accepting xml which must validate against an XSD with elements specified and multiple required plain params (different namespace prefixes)") {
+      Given ("a WADL that contains a POST operation with XML that must validate against an XSD with elemenst specified and multiple plain params")
+      val inWADL =
+      <wadl:application xmlns:wadl="http://wadl.dev.java.net/2009/02">
+        <wadl:grammars>
+            <wadl:include href="src/test/resources/xsd/test-urlxsd.xsd"/>
+        </wadl:grammars>
+        <wadl:resources base="https://test.api.openstack.com">
+           <wadl:resource path="/a/b">
+               <wadl:method name="POST">
+                  <wadl:request>
+                      <wadl:representation mediaType="application/xml" element="tst:a" xmlns:tst="http://www.rackspace.com/repose/wadl/checker/step/test">
+                         <wadl:param name="id" style="plain" path="/tst2:a/@id" required="true" xmlns:tst2="http://www.rackspace.com/repose/wadl/checker/step/test"/>
+                         <wadl:param name="stepType" style="plain" path="/tst3:a/@stepType" required="true" xmlns:tst3="http://www.rackspace.com/repose/wadl/checker/step/test"/>
+                      </wadl:representation>
+                  </wadl:request>
+               </wadl:method>
+           </wadl:resource>
+        </wadl:resources>
+    </wadl:application>
+      register("test://app/src/test/resources/xsd/test-urlxsd.xsd",
+               XML.loadFile("src/test/resources/xsd/test-urlxsd.xsd"))
+      val checker = builder.build (inWADL, TestConfig(false, false, true, true, true, 1, true))
+      assert(checker, "in-scope-prefixes(/chk:checker/chk:step[@type='XPATH' and @match='/tst:a']) = 'tst'")
+      assert(checker, "namespace-uri-for-prefix('tst', /chk:checker/chk:step[@type='XPATH' and @match='/tst:a']) = 'http://www.rackspace.com/repose/wadl/checker/step/test'")
+      assert(checker, "in-scope-prefixes(/chk:checker/chk:step[@type='XPATH' and @match='/tst2:a/@id']) = 'tst2'")
+      assert(checker, "namespace-uri-for-prefix('tst2', /chk:checker/chk:step[@type='XPATH' and @match='/tst2:a/@id']) = 'http://www.rackspace.com/repose/wadl/checker/step/test'")
+      assert(checker, "in-scope-prefixes(/chk:checker/chk:step[@type='XPATH' and @match='/tst3:a/@stepType']) = 'tst'")
+      assert(checker, "namespace-uri-for-prefix('tst3', /chk:checker/chk:step[@type='XPATH' and @match='/tst3:a/@stepType']) = 'http://www.rackspace.com/repose/wadl/checker/step/test'")
+      assert(checker, "count(/chk:checker/chk:step[@type='XPATH']) = 3")
+      assert(checker, "count(/chk:checker/chk:step[@type='XPATH' and @match='/tst:a']) = 1")
+      assert(checker, "count(/chk:checker/chk:step[@type='XPATH' and @match='/tst2:a/@id']) = 1")
+      assert(checker, "count(/chk:checker/chk:step[@type='XPATH' and @match='/tst3:a/@stepType']) = 1")
+      assert (checker, Start, URL("a"), URL("b"), Method("POST"), ReqType("(application/xml)(;.*)?"), WellXML, XPath("/tst:a","Expecting the root element to be: tst:a"),
+              XPath("/tst2:a/@id"), XPath("/tst3:a/@stepType"), XSD, Accept)
+      assert (checker, Start, URL("a"), URL("b"), Method("POST"), ReqType("(application/xml)(;.*)?"), ContentFail)
+      assert (checker, Start, URL("a"), URL("b"), Method("POST"), ReqType("(application/xml)(;.*)?"), WellXML, ContentFail)
+      assert (checker, Start, URL("a"), URL("b"), Method("POST"), ReqType("(application/xml)(;.*)?"), WellXML, XPath("/tst:a","Expecting the root element to be: tst:a"), ContentFail)
+      assert (checker, Start, URL("a"), URL("b"), Method("POST"), ReqType("(application/xml)(;.*)?"), WellXML, XPath("/tst:a","Expecting the root element to be: tst:a"),
+              XPath("/tst2:a/@id"), ContentFail)
+      assert (checker, Start, URL("a"), URL("b"), Method("POST"), ReqType("(application/xml)(;.*)?"), WellXML, XPath("/tst:a","Expecting the root element to be: tst:a"),
+              XPath("/tst2:a/@id"), XPath("/tst3:a/@stepType"), ContentFail)
+    }
 
     scenario("The WADL contains a POST  operation accepting xml which must validate against an XSD with elements specified and multiple required plain params (wellform checks to false)") {
       Given ("a WADL that contains a POST operation with XML that must validate against an XSD with elemenst specified and multiple plain params")
